@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1115">
+<title>Ajustes Android · Lanzador de Intents</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --card: #1a1d23;
+    --card-hover: #232830;
+    --text: #e6e8eb;
+    --muted: #9aa0a6;
+    --accent: #4f8cff;
+    --border: #2a2f38;
+    --success: #34c759;
+    --warning: #ff9500;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --card-hover: #f0f2f5;
+      --text: #1a1d23;
+      --muted: #5f6368;
+      --accent: #2563eb;
+      --border: #e1e4e8;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 16px;
+    min-height: 100vh;
+  }
+  code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.85em;
+    background: var(--card-hover);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .container { max-width: 860px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { font-size: 1.5rem; margin: 0 0 6px; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin: 0; }
+
+  .notice {
+    background: var(--card);
+    border-left: 4px solid var(--warning);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .notice strong { color: var(--text); }
+
+  .search, .package-input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    font-family: inherit;
+  }
+  .package-input {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.85rem;
+  }
+  .search:focus, .package-input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 0;
+    border-color: transparent;
+  }
+  .pkg-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin: -6px 0 16px 2px;
+  }
+
+  h2 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 26px 0 10px;
+  }
+
+  .grid { display: grid; gap: 8px; }
+
+  .item {
+    display: flex;
+    align-items: stretch;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: background 0.15s ease;
+  }
+  .item:hover { background: var(--card-hover); }
+
+  .item-main {
+    flex: 1;
+    padding: 12px 14px;
+    text-decoration: none;
+    color: var(--text);
+    display: block;
+    min-width: 0;
+  }
+  .item-main:active { opacity: 0.85; }
+  .item-main .name { display: block; font-weight: 500; font-size: 0.95rem; }
+  .item-main .action {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    margin-top: 3px;
+    word-break: break-all;
+  }
+  .item-main .note {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--warning);
+    margin-top: 5px;
+    font-style: italic;
+  }
+  .item.requires-pkg.no-pkg .item-main .name::after {
+    content: " · requiere paquete";
+    color: var(--warning);
+    font-size: 0.75rem;
+    font-weight: 400;
+  }
+
+  .copy {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border);
+    color: var(--muted);
+    padding: 0 14px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s ease;
+  }
+  .copy:hover { color: var(--accent); background: var(--card-hover); }
+  .copy:active { transform: scale(0.96); }
+
+  footer {
+    text-align: center;
+    margin-top: 36px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.6;
+  }
+
+  .hidden { display: none !important; }
+
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--success);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: transform 0.25s ease;
+    z-index: 1000;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🔧 Ajustes Android</h1>
+    <p class="subtitle">Lanzador de <code>intents</code> para abrir paneles de configuración</p>
+  </header>
+
+  <div class="notice">
+    <strong>⚠️ Importante:</strong> Los enlaces <code>intent://</code> solo funcionan en navegadores estándar (Chrome, Firefox, Samsung Internet, Brave…). Los navegadores integrados en apps (WhatsApp, Telegram, WeChat…) los bloquean por seguridad. Si un enlace no se abre, pulsa <strong>Copiar</strong> y pega la URI manualmente en la barra de direcciones de Chrome.
+  </div>
+
+  <input type="search" class="search" id="search" placeholder="🔍 Buscar ajuste (ej: desarrollador, wifi, apps)…">
+
+  <input type="text" class="package-input" id="pkgInput" placeholder="Paquete (opcional): com.whatsapp">
+  <span class="pkg-hint">Rellena este campo para las acciones que requieren <code>package:</code></span>
+
+  <div id="content"></div>
+
+  <footer>
+    Compatible con Android 8 → 14 · Algunos paneles pueden requerir permisos o versiones concretas.<br>
+    Uso educativo · Solo para dispositivos propios.
+  </footer>
+</div>
+
+<div class="toast" id="toast">URI copiada ✓</div>
+
+<script>
+const SECTIONS = [
+  {
+    title: "⚙️ Principales",
+    items: [
+      { name: "Ajustes", action: "android.settings.SETTINGS" },
+      { name: "Acerca del dispositivo", action: "android.settings.DEVICE_INFO_SETTINGS" },
+      { name: "Opciones de desarrollador", action: "android.settings.APPLICATION_DEVELOPMENT_SETTINGS",
+        note: "Requiere opciones de desarrollador activadas (7 toques en 'Número de compilación')" }
+    ]
+  },
+  {
+    title: "📱 Aplicaciones",
+    items: [
+      { name: "Lista de aplicaciones", action: "android.settings.MANAGE_APPLICATIONS_SETTINGS" },
+      { name: "Gestión de aplicaciones", action: "android.settings.APPLICATION_SETTINGS" },
+      { name: "Detalles de una app", action: "android.settings.APPLICATION_DETAILS_SETTINGS", needsPackage: true },
+      { name: "Instalar apps de origen desconocido", action: "android.settings.MANAGE_UNKNOWN_APP_SOURCES", needsPackage: true,
+        note: "Introduce el paquete del instalador (no el de la app a instalar)" },
+      { name: "Permiso de superposición (overlay)", action: "android.settings.MANAGE_OVERLAY_PERMISSION", needsPackage: true },
+      { name: "Acceso de uso (Usage Access)", action: "android.settings.USAGE_ACCESS_SETTINGS" },
+      { name: "Apps predeterminadas", action: "android.settings.MANAGE_DEFAULT_APPS_SETTINGS" },
+      { name: "Acceso especial (Special app access)", action: "android.settings.SPECIAL_ACCESS_SETTINGS" },
+      { name: "Administradores del dispositivo", action: "android.settings.DEVICE_ADMIN_SETTINGS" },
+      { name: "Pantalla de inicio (launcher)", action: "android.settings.HOME_SETTINGS" },
+      { name: "WebView", action: "android.settings.WEBVIEW_SETTINGS" },
+      { name: "Métodos de entrada (IME)", action: "android.settings.INPUT_METHOD_SETTINGS" },
+      { name: "Impresión", action: "android.settings.PRINT_SETTINGS" }
+    ]
+  },
+  {
+    title: "📶 Red e Internet",
+    items: [
+      { name: "Wi-Fi", action: "android.settings.WIFI_SETTINGS" },
+      { name: "Configuración IP (Wi-Fi)", action: "android.settings.WIFI_IP_SETTINGS" },
+      { name: "Bluetooth", action: "android.settings.BLUETOOTH_SETTINGS" },
+      { name: "NFC", action: "android.settings.NFC_SETTINGS" },
+      { name: "Modo avión", action: "android.settings.AIRPLANE_MODE_SETTINGS" },
+      { name: "VPN", action: "android.settings.VPN_SETTINGS" },
+      { name: "Uso de datos", action: "android.settings.DATA_USAGE_SETTINGS" },
+      { name: "Itinerancia de datos", action: "android.settings.DATA_ROAMING_SETTINGS" },
+      { name: "APN", action: "android.settings.APN_SETTINGS" }
+    ]
+  },
+  {
+    title: "🔔 Notificaciones y sonido",
+    items: [
+      { name: "Notificaciones", action: "android.settings.NOTIFICATION_SETTINGS" },
+      { name: "Asistente de notificaciones", action: "android.settings.NOTIFICATION_ASSISTANT_SETTINGS" },
+      { name: "No molestar (Zen Mode)", action: "android.settings.ZEN_MODE_SETTINGS" },
+      { name: "Sonido", action: "android.settings.SOUND_SETTINGS" }
+    ]
+  },
+  {
+    title: "🔒 Seguridad y privacidad",
+    items: [
+      { name: "Seguridad", action: "android.settings.SECURITY_SETTINGS" },
+      { name: "Privacidad", action: "android.settings.PRIVACY_SETTINGS" },
+      { name: "Ubicación", action: "android.settings.LOCATION_SOURCE_SETTINGS" },
+      { name: "Accesibilidad", action: "android.settings.ACCESSIBILITY_SETTINGS" },
+      { name: "Copia de seguridad", action: "android.settings.BACKUP_SETTINGS" },
+      { name: "Usuarios", action: "android.settings.USER_SETTINGS",
+        note: "Requiere permisos de administrador" }
+    ]
+  },
+  {
+    title: "🔋 Pantalla, batería y almacenamiento",
+    items: [
+      { name: "Pantalla", action: "android.settings.DISPLAY_SETTINGS" },
+      { name: "Ahorro de batería", action: "android.settings.BATTERY_SAVER_SETTINGS" },
+      { name: "Optimización de batería (apps)", action: "android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS" },
+      { name: "Almacenamiento interno", action: "android.settings.INTERNAL_STORAGE_SETTINGS" },
+      { name: "Almacenamiento (SD)", action: "android.settings.MEMORY_CARD_SETTINGS" },
+      { name: "USB", action: "android.settings.USB_SETTINGS" }
+    ]
+  },
+  {
+    title: "🌐 Sistema y otros",
+    items: [
+      { name: "Idioma y región", action: "android.settings.LOCALE_SETTINGS" },
+      { name: "Fecha y hora", action: "android.settings.DATE_SETTINGS" },
+      { name: "Búsqueda", action: "android.settings.SEARCH_SETTINGS" },
+      { name: "Sincronización", action: "android.settings.SYNC_SETTINGS" },
+      { name: "Transmitir pantalla (Cast)", action: "android.settings.CAST_SETTINGS" },
+      { name: "Protector de pantalla", action: "android.settings.DREAM_SETTINGS" }
+    ]
+  }
+];
+
+function buildUri(action, pkg) {
+  const p = (pkg || '').trim();
+  if (p) return `intent:#Intent;action=${action};data=package:${p};end`;
+  return `intent:#Intent;action=${action};end`;
+}
+
+function render() {
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+
+  SECTIONS.forEach(section => {
+    const sec = document.createElement('section');
+    const h2 = document.createElement('h2');
+    h2.textContent = section.title;
+    sec.appendChild(h2);
+
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+
+    section.items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'item';
+      row.dataset.action = item.action;
+      row.dataset.needsPackage = item.needsPackage ? 'true' : 'false';
+      if (item.needsPackage) row.classList.add('requires-pkg');
+
+      const a = document.createElement('a');
+      a.className = 'item-main';
+      a.href = buildUri(item.action, item.needsPackage ? document.getElementById('pkgInput').value : '');
+      a.innerHTML = `
+        <span class="name">${item.name}</span>
+        <span class="action">${item.action}</span>
+        ${item.note ? `<span class="note">${item.note}</span>` : ''}
+      `;
+
+      const btn = document.createElement('button');
+      btn.className = 'copy';
+      btn.textContent = 'Copiar';
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        copyToClipboard(a.href);
+      });
+
+      row.appendChild(a);
+      row.appendChild(btn);
+      grid.appendChild(row);
+    });
+
+    sec.appendChild(grid);
+    content.appendChild(sec);
+  });
+
+  refreshPackageState();
+}
+
+function refreshPackageState() {
+  const pkg = (document.getElementById('pkgInput').value || '').trim();
+  document.querySelectorAll('.item').forEach(row => {
+    const needs = row.dataset.needsPackage === 'true';
+    const action = row.dataset.action;
+    const a = row.querySelector('.item-main');
+    if (a) a.href = buildUri(action, needs ? pkg : '');
+    row.classList.toggle('no-pkg', needs && !pkg);
+  });
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(showToast, () => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast(); }
+  catch (e) { alert('URI:\n\n' + text); }
+  document.body.removeChild(ta);
+}
+
+let toastTimer;
+function showToast() {
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+document.getElementById('search').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  document.querySelectorAll('section').forEach(sec => {
+    let visible = 0;
+    sec.querySelectorAll('.item').forEach(row => {
+      const show = !q || row.textContent.toLowerCase().includes(q);
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    sec.style.display = visible > 0 ? '' : 'none';
+  });
+});
+
+document.getElementById('pkgInput').addEventListener('input', refreshPackageState);
+
+render();
+</script>
+</body>
+</html>
